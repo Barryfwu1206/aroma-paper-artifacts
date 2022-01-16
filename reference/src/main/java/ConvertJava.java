@@ -1,29 +1,31 @@
+import antlr4.JavaLexer;
+import antlr4.JavaParser;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
+import org.antlr.v4.runtime.tree.Tree;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.antlr.v4.runtime.tree.Tree;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 public class ConvertJava {
   private static final int MAX_DEPTH = 1000;
   Vocabulary vocab;
   ArrayList<String> identifiersRuleNames =
-      new ArrayList<String>(
+      new ArrayList<>(
           Arrays.asList(
               "IDENTIFIER",
               "localVar",
@@ -39,7 +41,7 @@ public class ConvertJava {
               "HEX_FLOAT_LITERAL"));
 
   ArrayList<String> localVarContexts =
-      new ArrayList<String>(
+      new ArrayList<>(
           Arrays.asList("variableDeclaratorId", "primary", "catchClause", "lambdaParameters"));
 
   List<String> ruleNames = null;
@@ -66,7 +68,7 @@ public class ConvertJava {
   private int successFullFiles = 0;
   private int totalMethods = 0;
 
-  public void serializeFile(String f, String startSymbol) {
+  public void serializeFile(String f) {
     try {
       long t1, t2, t3;
 
@@ -85,7 +87,7 @@ public class ConvertJava {
       Parser parser = new JavaParser(tokens);
       parser.setErrorHandler(new BailErrorStrategy());
 
-      Method method = parser.getClass().getMethod(startSymbol);
+      Method method = parser.getClass().getMethod("compilationUnit");
       ParserRuleContext t = (ParserRuleContext) method.invoke(parser);
       parser.setBuildParseTree(false);
       setRuleNames(parser);
@@ -308,14 +310,17 @@ public class ConvertJava {
   }
 
   public static void main(String args[]) throws IOException {
+    String inputFile = "/Users/barryfwu/Develops/aroma-paper-artifacts/reference/data/test.java";
+    String outFile = "/Users/barryfwu/Develops/aroma-paper-artifacts/reference/data/out.txt";
+
     ConvertJava p = new ConvertJava();
-    p.openWriter(args[1]);
-    if (Files.isRegularFile(new File(args[2]).toPath())) {
-      p.serializeFile(args[2], args[0]);
+    p.openWriter(outFile);
+    if (Files.isRegularFile(Paths.get(inputFile))) {
+      p.serializeFile(inputFile);
     } else {
-      Files.walk(Paths.get(args[2]))
+      Files.walk(Paths.get(inputFile))
           .filter(path -> !Files.isDirectory(path) && path.toString().endsWith(".java"))
-          .forEach(path -> p.serializeFile(path.normalize().toString(), args[0]));
+          .forEach(path -> p.serializeFile(path.normalize().toString()));
     }
     p.closeWriter();
   }
